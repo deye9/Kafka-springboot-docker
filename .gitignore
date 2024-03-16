@@ -59,3 +59,4 @@ replay_pid*
 
 # Other files and folders
 ./target
+kafka-cluster/*
