@@ -1,77 +1,73 @@
 package com.kafka.demo.kafka.service;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.admin.CreateTopicsResult;
+import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.config.TopicConfig;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-import com.kafka.demo.model.TaskStatus;
+import com.kafka.demo.model.MessageObject;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class KafkaProducerService {
 
     @Autowired
-    KafkaTemplate<String, TaskStatus> kafkaTemplate;
+    KafkaAdmin kafkaAdmin;
 
-    @Value(value = "${spring.kafka.bootstrap-servers}")
-    private String bootstrapAddress;
+    @Autowired
+    KafkaConsumerService kafkaConsumerService;
 
-    private final Logger LOGGER = LoggerFactory.getLogger(KafkaProducerService.class);
+    @Autowired
+    KafkaConsumer<String, MessageObject> kafkaConsumer;
 
-    private boolean topicExists(String topicName) {
+    @Autowired
+    KafkaTemplate<String, MessageObject> kafkaTemplate;
+
+    public boolean topicExists(String topicName) {
+
+        log.info("Checking if topic exists: {}", topicName);
+
         Properties props = new Properties();
-        props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
+        props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG,
+                kafkaAdmin.getConfigurationProperties().get(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG));
 
         try (AdminClient adminClient = AdminClient.create(props)) {
             return adminClient.listTopics().names().get().contains(topicName);
         } catch (Exception e) {
-            LOGGER.error("Error while checking if topic exists: " + e.getMessage());
+            log.error("Error while checking if topic exists: {}", e.getMessage());
             return false;
         }
     }
 
-    private CreateTopicsResult createTopic(String topicName) {
+    public List<MessageObject> getTopicMessages(String topicName) {
 
-        LOGGER.info("Creating topic: " + topicName);
+        log.info("Retrieving messages from topic: {}", topicName);
 
-        Properties props = new Properties();
-        props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
-
-        try (AdminClient adminClient = AdminClient.create(props)) {
-            return adminClient.createTopics(Collections.singleton(new NewTopic(topicName, 1, (short) 1)));
-        } catch (Exception e) {
-            LOGGER.error("Error while creating topic: " + e.getMessage());
-            return null;
-        }
+        return kafkaConsumerService.getTopicMessages(topicName);
     }
 
-    public void send(String topicName, String key, TaskStatus value) {
+    public void saveMessageToTopic(String topicName, MessageObject value) {
 
-        if (!topicExists(topicName)) {
-            LOGGER.info("Topic does not exist: " + topicName);
+        log.info("Saving message {} to topic: {}", value, topicName);
 
-            CreateTopicsResult result = createTopic(topicName);
-            result.values().forEach((name, future) -> {
-                try {
-                    future.get();
-                    LOGGER.info("Topic created: " + name);
-                } catch (Exception e) {
-                    LOGGER.error("Error while creating topic: " + e.getMessage() + ". Aborting operation.");
-                    return;
-                }
-            });
-        }
-
-        var future = kafkaTemplate.send(topicName, key, value);
+        var future= kafkaTemplate.send(topicName, value);
 
         future.whenComplete((sendResult, exception) -> {
             if (exception != null) {
@@ -79,7 +75,44 @@ public class KafkaProducerService {
             } else {
                 future.complete(sendResult);
             }
-            LOGGER.info("Task status send to Kafka topic : " + value);
+            log.info("Message sent to Kafka topic : " + value);
         });
     }
+
+    public List<String> getAllTopics() throws ExecutionException, InterruptedException {
+
+        log.info("Retrieving all topics");
+
+        try (AdminClient adminClient = AdminClient.create(kafkaAdmin.getConfigurationProperties())) {
+
+            ListTopicsResult topicsResult = adminClient.listTopics();
+            Set<String> topicNames = topicsResult.names().get();
+            return new ArrayList<>(topicNames);
+        }
+    }
+
+    public void createTopic(String topicName) throws ExecutionException, InterruptedException {
+
+        log.info("Creating topic: {}", topicName);
+
+        Map<String, String> topicConfig = new HashMap<>();
+
+        topicConfig.put(TopicConfig.RETENTION_MS_CONFIG, String.valueOf(24 * 60 * 60 * 1000)); // 24 hours retention
+        NewTopic newTopic = new NewTopic(topicName, 1, (short) 1).configs(topicConfig);
+
+        try (AdminClient adminClient = AdminClient.create(kafkaAdmin.getConfigurationProperties())) {
+            adminClient.createTopics(Collections.singletonList(newTopic)).all().get();
+        }
+        kafkaConsumer.subscribe(Collections.singletonList(topicName));
+    }
+
+    public void deleteTopic(String topicName) throws ExecutionException, InterruptedException {
+
+        log.info("Deleting topic: {}", topicName);
+
+        try (AdminClient adminClient = AdminClient.create(kafkaAdmin.getConfigurationProperties())) {
+            adminClient.deleteTopics(Collections.singletonList(topicName)).all().get();
+        }
+    }
+
 }

@@ -1,11 +1,11 @@
 version: "3"
 services:
-  kafka1:
-    image: 'bitnami/kafka:3.3.1'
-    hostname: kafka1
-    container_name: kafka1
+  kafka:
+    image: 'bitnami/kafka:latest'
+    hostname: kafka
+    container_name: kafka
     volumes:
-      - ./kafka-cluster/kafka1/data:/var/lib/kafka/data
+      - ./kafka-cluster/kafka/data:/bitnami/data
     user: root
     ports:
      - '9092:9092'
@@ -20,3 +20,4 @@ services:
       - KAFKA_KRAFT_CLUSTER_ID=LelM2dIFQkiUFvXCEcqRWA
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@localhost:9093
       - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=1

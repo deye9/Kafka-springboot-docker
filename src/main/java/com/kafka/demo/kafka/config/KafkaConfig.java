@@ -1,4 +1,4 @@
-package com.kafka.demo.kafka;
+package com.kafka.demo.kafka.config;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,10 +23,10 @@ import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
-import com.kafka.demo.model.TaskStatus;
+import com.kafka.demo.model.MessageObject;
 
 @Configuration
-public class Config {
+public class KafkaConfig {
 
     @Value(value = "${spring.kafka.bootstrap-servers}")
     private String bootstrapAddress;
@@ -51,7 +51,7 @@ public class Config {
     }
 
     @Bean
-    ConsumerFactory<String, TaskStatus> consumerFactory() {
+    ConsumerFactory<String, MessageObject> consumerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
         configProps.put(JsonDeserializer.TRUSTED_PACKAGES, trustedPackages);
@@ -64,12 +64,12 @@ public class Config {
     }
 
     @Bean
-    KafkaConsumer<String, TaskStatus> kafkaConsumer() {
-        return (KafkaConsumer<String, TaskStatus>) consumerFactory().createConsumer();
+    KafkaConsumer<String, MessageObject> kafkaConsumer() {
+        return (KafkaConsumer<String, MessageObject>) consumerFactory().createConsumer();
     }
 
     @Bean
-    ProducerFactory<String, TaskStatus> producerFactory() {
+    ProducerFactory<String, MessageObject> producerFactory() {
 
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
@@ -79,15 +79,15 @@ public class Config {
     }
 
     @Bean
-    KafkaTemplate<String, TaskStatus> kafkaTemplate() {
+    KafkaTemplate<String, MessageObject> kafkaTemplate() {
         var kafkaTemplate = new KafkaTemplate<>(producerFactory());
         kafkaTemplate.setConsumerFactory(consumerFactory());
         return kafkaTemplate;
     }
 
     @Bean
-    ConcurrentKafkaListenerContainerFactory<String, TaskStatus> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, TaskStatus> factory = new ConcurrentKafkaListenerContainerFactory<>();
+    ConcurrentKafkaListenerContainerFactory<String, MessageObject> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, MessageObject> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         return factory;
     }

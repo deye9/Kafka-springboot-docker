@@ -1,40 +1,47 @@
 package com.kafka.demo.kafka.service;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.kafka.demo.model.TaskStatus;
+import com.kafka.demo.model.MessageObject;
 
 @Service
 public class KafkaConsumerService {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(KafkaConsumerService.class);
-
     @Autowired
-    KafkaConsumer<String, TaskStatus> kafkaConsumer;
+    KafkaConsumer<String, MessageObject> consumer;
 
-    public TaskStatus getLatestTaskStatus(String taskId) {
+    public List<MessageObject> getTopicMessages(String topic) {
 
-        ConsumerRecord<String, TaskStatus> latestUpdate = null;
-        ConsumerRecords<String, TaskStatus> consumerRecords = kafkaConsumer.poll(Duration.ofMillis(1000));
+        consumer.subscribe(Arrays.asList(topic));
+        List<MessageObject> messageList = new ArrayList<>();
 
-        if (!consumerRecords.isEmpty()) {
-            Iterator itr = consumerRecords.records(taskId).iterator();
+        while (true) {
+            ConsumerRecords<String, MessageObject> records = consumer.poll(Duration.ofMillis(100));
+            for (ConsumerRecord<String, MessageObject> record : records) {
+                System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(),
+                        record.key(), record.value());
 
-            while (itr.hasNext()) {
-                latestUpdate = (ConsumerRecord<String, TaskStatus>) itr.next();
+                if (!records.isEmpty()) {
+                    Iterator<ConsumerRecord<String, MessageObject>> itr = records.iterator();
+                    while (itr.hasNext()) {
+                        messageList.add(itr.next().value());
+                    }
+                }
             }
-            
-            LOGGER.info("Latest updated status : " + latestUpdate.value());
+            break; // Add break statement to exit the loop
         }
-        return latestUpdate != null ? latestUpdate.value() : null;
+
+        return messageList;
     }
+
 }
