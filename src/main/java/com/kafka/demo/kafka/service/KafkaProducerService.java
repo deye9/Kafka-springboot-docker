@@ -15,7 +15,6 @@ import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.TopicConfig;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -28,17 +27,20 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class KafkaProducerService {
 
-    @Autowired
-    KafkaAdmin kafkaAdmin;
+    private final KafkaAdmin kafkaAdmin;
 
-    @Autowired
-    KafkaConsumerService kafkaConsumerService;
+    private final KafkaConsumerService kafkaConsumerService;
 
-    @Autowired
-    KafkaConsumer<String, MessageObject> kafkaConsumer;
+    private final KafkaConsumer<String, MessageObject> kafkaConsumer;
 
-    @Autowired
-    KafkaTemplate<String, MessageObject> kafkaTemplate;
+    private final KafkaTemplate<String, MessageObject> kafkaTemplate;
+
+    public KafkaProducerService(KafkaAdmin kafkaAdmin, KafkaConsumerService kafkaConsumerService, KafkaConsumer<String, MessageObject> kafkaConsumer, KafkaTemplate<String, MessageObject> kafkaTemplate) {
+        this.kafkaAdmin = kafkaAdmin;
+        this.kafkaConsumer = kafkaConsumer;
+        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaConsumerService = kafkaConsumerService;
+    }
 
     public boolean topicExists(String topicName) {
 
@@ -54,13 +56,6 @@ public class KafkaProducerService {
             log.error("Error while checking if topic exists: {}", e.getMessage());
             return false;
         }
-    }
-
-    public List<MessageObject> getTopicMessages(String topicName) {
-
-        log.info("Retrieving messages from topic: {}", topicName);
-
-        return kafkaConsumerService.getTopicMessages(topicName);
     }
 
     public void saveMessageToTopic(String topicName, MessageObject value) {
@@ -115,4 +110,10 @@ public class KafkaProducerService {
         }
     }
 
+    public List<MessageObject> getTopicMessages(String topicName) throws ExecutionException, InterruptedException {
+
+        log.info("Retrieving messages from topic: {}", topicName);
+
+        return kafkaConsumerService.getTopicMessages(topicName);
+    }
 }

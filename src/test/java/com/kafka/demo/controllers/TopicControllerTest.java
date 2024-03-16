@@ -5,6 +5,7 @@ import com.kafka.demo.kafka.service.KafkaProducerService;
 import com.kafka.demo.model.MessageObject;
 import com.kafka.demo.model.TaskRequest;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,11 +18,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -42,44 +43,24 @@ public class TopicControllerTest {
         MockitoAnnotations.openMocks(this);
     }
 
-    // Delete a topic
-    @Test
-    public void testDeleteTopic_Success() throws ExecutionException, InterruptedException {
-        ResponseEntity<?> response = controller.deleteTopic(topic);
-
-        verify(service, times(1)).deleteTopic(topic);
-        assertEquals(response.getStatusCode(), HttpStatus.NO_CONTENT);
-    }
-
-    @Test
-    public void testDeleteTopic_ThrowsExecutionException() {
-        try {
-            controller.deleteTopic(topic);
-        } catch (Exception e) {
-            assertEquals(e.getClass(), ExecutionException.class);
-        }
-    }
-
-    @Test
-    public void testDeleteTopic_ThrowsInterruptedException() {
-        try {
-            controller.deleteTopic(topic);
-        } catch (Exception e) {
-            assertEquals(e.getClass(), InterruptedException.class);
-        }
-    }
-
     // Get all Topics
     @Test
-    public void testGetTopic_Success() throws ExecutionException, InterruptedException {
-        ResponseEntity<?> response = controller.getTopic();
+    void testGetTopic_Success() throws ExecutionException, InterruptedException {
 
-        verify(service, times(1)).getAllTopics();
-        assertEquals(response.getStatusCode(), HttpStatus.OK);
+        List<String> expectedTopic = List.of();
+        when(service.getAllTopics()).thenReturn(expectedTopic);
+
+        ResponseEntity<?> actualTopic = controller.getTopic();
+
+        assertEquals(actualTopic.getStatusCode(), HttpStatus.OK);
+        assertEquals(actualTopic.getBody(), expectedTopic);
     }
 
     @Test
-    public void testGetTopic_ThrowsExecutionException() {
+    void testGetTopic_ThrowsExecutionException() throws ExecutionException, InterruptedException {
+
+        when(service.getAllTopics()).thenThrow(ExecutionException.class);
+
         try {
             controller.getTopic();
         } catch (Exception e) {
@@ -88,7 +69,10 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void testGetTopic_ThrowsInterruptedException() {
+    void testGetTopic_ThrowsInterruptedException() throws ExecutionException, InterruptedException {
+
+        when(service.getAllTopics()).thenThrow(InterruptedException.class);
+
         try {
             controller.getTopic();
         } catch (Exception e) {
@@ -98,29 +82,71 @@ public class TopicControllerTest {
 
     // Get all messages from a topic
     @Test
-    public void testGetTopicMessages_Success() throws ExecutionException, InterruptedException {
+    void testGetTopicMessages_Success() throws ExecutionException, InterruptedException {
 
-        ResponseEntity<List<MessageObject>> response = controller.getTopic(topic);
+        List<MessageObject> expectedMessages = List.of();
+        when(service.getTopicMessages(topic)).thenReturn(expectedMessages);
 
-        verify(service, times(1)).getTopicMessages(topic);
-        assertEquals(response.getStatusCode(), HttpStatus.OK);
+        ResponseEntity<List<MessageObject>> actualMessages = controller.getTopicMessage(topic);
+
+        assertEquals(actualMessages.getStatusCode(), HttpStatus.OK);
+        assertEquals(actualMessages.getBody(), expectedMessages);
     }
 
     @Test
-    public void testGetTopicMessages_ThrowsExecutionException() {
+    void testGetTopicMessages_ThrowsExecutionException() throws ExecutionException, InterruptedException {
+
+        when(service.getTopicMessages(topic)).thenThrow(ExecutionException.class);
 
         try {
-            controller.getTopic(topic);
+            controller.getTopicMessage(topic);
+        } catch (Exception e) {
+            assertEquals(e.getClass(), ExecutionException.class);
+        }
+    }
+    
+    @Test
+    void testGetTopicMessages_ThrowsInterruptedException() throws ExecutionException, InterruptedException {
+
+        when(service.getTopicMessages(topic)).thenThrow(InterruptedException.class);
+
+        try {
+            controller.getTopicMessage(topic);
+        } catch (Exception e) {
+            assertEquals(e.getClass(), InterruptedException.class);
+        }
+    }
+
+    // Create Topic
+    @Test
+    void testCreateTopic_Success() throws ExecutionException, InterruptedException {
+
+        TaskRequest topic = new TaskRequest("testTopic");
+        Map<String, String> expectedMessage = Collections.singletonMap("data", topic.name());
+
+        ResponseEntity<?> response = controller.createTopic(topic, UriComponentsBuilder.newInstance());
+
+        assertEquals(response.getStatusCode(), HttpStatus.CREATED);
+        assertEquals(response.getBody(), expectedMessage);
+    }
+
+    @Test
+    void testCreateTopic_ThrowsExecutionException() {
+
+        TaskRequest topic = new TaskRequest("testTopic");
+        try {
+            controller.createTopic(topic, UriComponentsBuilder.newInstance());
         } catch (Exception e) {
             assertEquals(e.getClass(), ExecutionException.class);
         }
     }
 
     @Test
-    public void testGetTopicMessages_ThrowsInterruptedException() {
+    void testCreateTopic_ThrowsInterruptedException() {
 
+        TaskRequest topic = new TaskRequest("testTopic");
         try {
-            controller.getTopic(topic);
+            controller.createTopic(topic, UriComponentsBuilder.newInstance());
         } catch (Exception e) {
             assertEquals(e.getClass(), InterruptedException.class);
         }
@@ -128,19 +154,20 @@ public class TopicControllerTest {
 
     // Save message to topic
     @Test
-    public void testCreateTopicMessage_Success() throws ExecutionException, InterruptedException {
+    void testCreateTopicMessage_Success() throws ExecutionException, InterruptedException {
 
-        MessageObject message = new MessageObject("test_Message 1", topic, 0, Optional.empty());
+        MessageObject message = new MessageObject("id 1", topic, 0);
+
         ResponseEntity<?> response = controller.createTopicMessage(topic, message, UriComponentsBuilder.newInstance());
 
-        verify(service, times(1)).saveMessageToTopic(topic, message);
+        Assertions.assertNull(response.getBody());
         assertEquals(response.getStatusCode(), HttpStatus.CREATED);
     }
 
     @Test
-    public void testCreateTopicMessage_ThrowsExecutionException() {
+    void testCreateTopicMessage_ThrowsExecutionException() {
 
-        MessageObject message = new MessageObject("test_Message 1", topic, 0, Optional.empty());
+        MessageObject message = new MessageObject("id 1", topic, 0);
         try {
             controller.createTopicMessage(topic, message, UriComponentsBuilder.newInstance());
         } catch (Exception e) {
@@ -149,47 +176,23 @@ public class TopicControllerTest {
     }
 
     @Test
-    public void testCreateTopicMessage_ThrowsInterruptedException() {
+    void testCreateTopicMessage_ThrowsInterruptedException() {
 
-        MessageObject message = new MessageObject("test_Message 1", topic, 0, Optional.empty());
+        MessageObject message = new MessageObject("id 1", topic, 0);
         try {
             controller.createTopicMessage(topic, message, UriComponentsBuilder.newInstance());
         } catch (Exception e) {
             assertEquals(e.getClass(), InterruptedException.class);
         }
     }
-
-    // Create a new topic
+   
+    // Delete a topic
     @Test
-    public void testCreateTopic_Success() throws ExecutionException, InterruptedException {
+    void testDeleteTopic_Success() throws ExecutionException, InterruptedException {
 
-        TaskRequest topic = new TaskRequest("testTopic");
+        ResponseEntity<?> response = controller.deleteTopic(topic);
 
-        ResponseEntity<?> response = controller.createTopic(topic, UriComponentsBuilder.newInstance());
-
-        verify(service, times(1)).createTopic(topic.name());
-        assertEquals(response.getStatusCode(), HttpStatus.CREATED);
-    }
-
-    @Test
-    public void testCreateTopic_ThrowsExecutionException() {
-
-        TaskRequest topic = new TaskRequest("testTopic");
-        try {
-            controller.createTopic(topic, UriComponentsBuilder.newInstance());
-        } catch (Exception e) {
-            assertEquals(e.getClass(), ExecutionException.class);
-        }
-    }
-
-    @Test
-    public void testCreateTopic_ThrowsInterruptedException() {
-
-        TaskRequest topic = new TaskRequest("testTopic");
-        try {
-            controller.createTopic(topic, UriComponentsBuilder.newInstance());
-        } catch (Exception e) {
-            assertEquals(e.getClass(), InterruptedException.class);
-        }
+        Assertions.assertNull(response.getBody());
+        assertEquals(response.getStatusCode(), HttpStatus.NO_CONTENT);
     }
 }

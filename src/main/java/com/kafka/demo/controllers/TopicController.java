@@ -2,9 +2,9 @@ package com.kafka.demo.controllers;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,8 +24,11 @@ import jakarta.validation.Valid;
 @RestController
 public class TopicController {
 
-    @Autowired
-    KafkaProducerService service;
+    final KafkaProducerService service;
+
+    public TopicController(KafkaProducerService service) {
+        this.service = service;
+    }
 
     // Delete a topic
     @DeleteMapping("/{topic}")
@@ -46,7 +49,7 @@ public class TopicController {
 
     // Get all messages from a topic
     @GetMapping("/{topic}")
-    public ResponseEntity<List<MessageObject>> getTopic(@Valid @PathVariable("topic") String topic)
+    public ResponseEntity<List<MessageObject>> getTopicMessage(@Valid @PathVariable("topic") String topic)
             throws ExecutionException, InterruptedException {
 
         return ResponseEntity.ok().body(service.getTopicMessages(topic));

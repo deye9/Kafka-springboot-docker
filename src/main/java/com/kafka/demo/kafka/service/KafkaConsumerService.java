@@ -1,15 +1,11 @@
 package com.kafka.demo.kafka.service;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.kafka.demo.model.MessageObject;
@@ -17,29 +13,32 @@ import com.kafka.demo.model.MessageObject;
 @Service
 public class KafkaConsumerService {
 
-    @Autowired
+    final
     KafkaConsumer<String, MessageObject> consumer;
+
+    public KafkaConsumerService(KafkaConsumer<String, MessageObject> consumer) {
+        this.consumer = consumer;
+    }
 
     public List<MessageObject> getTopicMessages(String topic) {
 
-        consumer.subscribe(Arrays.asList(topic));
+        consumer.subscribe(Collections.singletonList(topic));
         List<MessageObject> messageList = new ArrayList<>();
 
-        while (true) {
+        do {
             ConsumerRecords<String, MessageObject> records = consumer.poll(Duration.ofMillis(100));
             for (ConsumerRecord<String, MessageObject> record : records) {
                 System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(),
                         record.key(), record.value());
 
                 if (!records.isEmpty()) {
-                    Iterator<ConsumerRecord<String, MessageObject>> itr = records.iterator();
-                    while (itr.hasNext()) {
-                        messageList.add(itr.next().value());
+                    for (ConsumerRecord<String, MessageObject> stringMessageObjectConsumerRecord : records) {
+                        messageList.add(stringMessageObjectConsumerRecord.value());
                     }
                 }
             }
             break; // Add break statement to exit the loop
-        }
+        } while (true);
 
         return messageList;
     }
