@@ -1,18 +1,29 @@
 package com.kafka.demo.kafka.config;
 
+import static org.apache.kafka.streams.StreamsConfig.APPLICATION_ID_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.BOOTSTRAP_SERVERS_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.kafka.annotation.EnableKafkaStreams;
+import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.KafkaStreamsConfiguration;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -25,6 +36,8 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 import com.kafka.demo.model.MessageObject;
 
 @Configuration
+// @EnableKafka
+// @EnableKafkaStreams
 public class KafkaConfig {
 
     @Value(value = "${spring.kafka.bootstrap-servers}")
@@ -38,6 +51,9 @@ public class KafkaConfig {
 
     @Value(value = "${spring.kafka.trusted-packages}")
     private String trustedPackages;
+
+    // @Value(value = "${spring.kafka.streams.state.dir}")
+    // private String stateStoreLocation;
 
     final
     KafkaProperties kafkaProperties;
@@ -54,7 +70,7 @@ public class KafkaConfig {
     }
 
     @Bean
-    ConsumerFactory<String, MessageObject> consumerFactory() {
+    ConsumerFactory<String, List<MessageObject>> consumerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
         configProps.put(JsonDeserializer.TRUSTED_PACKAGES, trustedPackages);
@@ -67,12 +83,12 @@ public class KafkaConfig {
     }
 
     @Bean
-    KafkaConsumer<String, MessageObject> kafkaConsumer() {
-        return (KafkaConsumer<String, MessageObject>) consumerFactory().createConsumer();
+    KafkaConsumer<String, List<MessageObject>> kafkaConsumer() {
+        return (KafkaConsumer<String, List<MessageObject>>) consumerFactory().createConsumer();
     }
 
     @Bean
-    ProducerFactory<String, MessageObject> producerFactory() {
+    ProducerFactory<String, List<MessageObject>> producerFactory() {
 
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
@@ -82,16 +98,29 @@ public class KafkaConfig {
     }
 
     @Bean
-    KafkaTemplate<String, MessageObject> kafkaTemplate() {
+    KafkaTemplate<String, List<MessageObject>> kafkaTemplate() {
         var kafkaTemplate = new KafkaTemplate<>(producerFactory());
         kafkaTemplate.setConsumerFactory(consumerFactory());
         return kafkaTemplate;
     }
 
     @Bean
-    ConcurrentKafkaListenerContainerFactory<String, MessageObject> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, MessageObject> factory = new ConcurrentKafkaListenerContainerFactory<>();
+    ConcurrentKafkaListenerContainerFactory<String, List<MessageObject>> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, List<MessageObject>> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         return factory;
     }
+
+    @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
+    KafkaStreamsConfiguration kStreamsConfig() {
+        
+        Map<String, Object> props = new HashMap<>();
+        props.put(APPLICATION_ID_CONFIG, "streams-app");
+        props.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
+        props.put(DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
+        props.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
+
+        return new KafkaStreamsConfiguration(props);
+    }
+
 }

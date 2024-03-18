@@ -13,10 +13,9 @@ import com.kafka.demo.model.MessageObject;
 @Service
 public class KafkaConsumerService {
 
-    final
-    KafkaConsumer<String, MessageObject> consumer;
+    final KafkaConsumer<String, List<MessageObject>> consumer;
 
-    public KafkaConsumerService(KafkaConsumer<String, MessageObject> consumer) {
+    public KafkaConsumerService(KafkaConsumer<String, List<MessageObject>> consumer) {
         this.consumer = consumer;
     }
 
@@ -26,14 +25,16 @@ public class KafkaConsumerService {
         List<MessageObject> messageList = new ArrayList<>();
 
         do {
-            ConsumerRecords<String, MessageObject> records = consumer.poll(Duration.ofMillis(100));
-            for (ConsumerRecord<String, MessageObject> record : records) {
+            ConsumerRecords<String, List<MessageObject>> records = consumer.poll(Duration.ofMillis(100));
+
+            for (ConsumerRecord<String, List<MessageObject>> record : records) {
                 System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(),
                         record.key(), record.value());
 
                 if (!records.isEmpty()) {
-                    for (ConsumerRecord<String, MessageObject> stringMessageObjectConsumerRecord : records) {
-                        messageList.add(stringMessageObjectConsumerRecord.value());
+                    
+                    for (ConsumerRecord<String, List<MessageObject>> stringMessageObjectConsumerRecord : records) {
+                        messageList.addAll(stringMessageObjectConsumerRecord.value());
                     }
                 }
             }

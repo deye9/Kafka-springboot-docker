@@ -1,11 +1,11 @@
-version: "3"
+version: "3.8"
 services:
   kafka:
     image: 'bitnami/kafka:latest'
     hostname: kafka
     container_name: kafka
     volumes:
-      - ./kafka-cluster/kafka/data:/bitnami/data
+      - ./kafka:/bitnami/data
     user: root
     ports:
      - '9092:9092'

@@ -9,6 +9,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import jakarta.validation.Valid;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.ListTopicsResult;
@@ -31,11 +32,11 @@ public class KafkaProducerService {
 
     private final KafkaConsumerService kafkaConsumerService;
 
-    private final KafkaConsumer<String, MessageObject> kafkaConsumer;
+    private final KafkaConsumer<String, List<MessageObject>> kafkaConsumer;
 
-    private final KafkaTemplate<String, MessageObject> kafkaTemplate;
+    private final KafkaTemplate<String, List<MessageObject>> kafkaTemplate;
 
-    public KafkaProducerService(KafkaAdmin kafkaAdmin, KafkaConsumerService kafkaConsumerService, KafkaConsumer<String, MessageObject> kafkaConsumer, KafkaTemplate<String, MessageObject> kafkaTemplate) {
+    public KafkaProducerService(KafkaAdmin kafkaAdmin, KafkaConsumerService kafkaConsumerService, KafkaConsumer<String, List<MessageObject>> kafkaConsumer, KafkaTemplate<String, List<MessageObject>> kafkaTemplate) {
         this.kafkaAdmin = kafkaAdmin;
         this.kafkaConsumer = kafkaConsumer;
         this.kafkaTemplate = kafkaTemplate;
@@ -58,7 +59,7 @@ public class KafkaProducerService {
         }
     }
 
-    public void saveMessageToTopic(String topicName, MessageObject value) {
+    public void saveMessageToTopic(String topicName, @Valid List<MessageObject> value) {
 
         log.info("Saving message {} to topic: {}", value, topicName);
 

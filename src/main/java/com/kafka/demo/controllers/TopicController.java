@@ -2,7 +2,6 @@ package com.kafka.demo.controllers;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import org.springframework.http.ResponseEntity;
@@ -21,7 +20,7 @@ import com.kafka.demo.model.MessageObject;
 
 import jakarta.validation.Valid;
 
-@RestController
+// @RestController
 public class TopicController {
 
     final KafkaProducerService service;
@@ -49,7 +48,7 @@ public class TopicController {
 
     // Get all messages from a topic
     @GetMapping("/{topic}")
-    public ResponseEntity<List<MessageObject>> getTopicMessage(@Valid @PathVariable("topic") String topic)
+    public ResponseEntity<?> getTopicMessage(@Valid @PathVariable("topic") String topic)
             throws ExecutionException, InterruptedException {
 
         return ResponseEntity.ok().body(service.getTopicMessages(topic));
@@ -58,12 +57,13 @@ public class TopicController {
     // Save message to topic
     @PostMapping("/{topic}/message")
     public ResponseEntity<?> createTopicMessage(@Valid @PathVariable("topic") String topic,
-            @Valid @RequestBody MessageObject taskRequest, UriComponentsBuilder b)
-            throws ExecutionException, InterruptedException {
+            @Valid @RequestBody List<MessageObject> message, UriComponentsBuilder b)
+            throws InterruptedException {
 
-        service.saveMessageToTopic(topic, taskRequest);
-
+        service.saveMessageToTopic(topic, message);
         UriComponents topicURL = b.path("/{topic}").buildAndExpand(topic);
+
+        // Fire up the consumer service and let the topic be consumed right away
 
         return ResponseEntity.created(topicURL.toUri()).build();
     }
