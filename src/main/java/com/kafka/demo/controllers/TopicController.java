@@ -20,7 +20,7 @@ import com.kafka.demo.model.MessageObject;
 
 import jakarta.validation.Valid;
 
-// @RestController
+@RestController
 public class TopicController {
 
     final KafkaProducerService service;

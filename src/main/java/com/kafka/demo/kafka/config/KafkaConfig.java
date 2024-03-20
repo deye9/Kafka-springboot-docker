@@ -36,8 +36,8 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 import com.kafka.demo.model.MessageObject;
 
 @Configuration
-// @EnableKafka
-// @EnableKafkaStreams
+@EnableKafka
+@EnableKafkaStreams
 public class KafkaConfig {
 
     @Value(value = "${spring.kafka.bootstrap-servers}")
